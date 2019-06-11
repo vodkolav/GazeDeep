@@ -11,9 +11,11 @@ from tkinter import Tk, Canvas
 import random as rnd
 import time
 import cv2
-from cut_eyes import cut_eyes
-from conf import path
-import os
+from cut_eyes import cut_eyes, report, clear_dir
+from conf import path, fullscreen
+ 
+#import PIL.ImageTk as PI
+#import conf.py as GDc
 
 
 class Ball:
@@ -66,10 +68,13 @@ class Paddle:
         self.canvas.move(self.id, 0, 0)
         self.x = 0
         self.endProg = False
+        self.BeginRec = False
         self.canvas_width = self.canvas.winfo_width()
         self.canvas.bind_all('<KeyPress-Left>', self.turn_left)
         self.canvas.bind_all('<KeyPress-Right>', self.turn_right)    
         self.canvas.bind_all('<Escape>', self.QuitProg )
+        self.canvas.bind_all('<s>', self.BeginRecord )
+        
     def draw(self):
         self.canvas.move(self.id, self.x, 0)
         pos = self.canvas.coords(self.id)
@@ -85,6 +90,11 @@ class Paddle:
     def QuitProg(self, evt):
             #self.canvas.destroy()
             self.endProg = True
+    def BeginRecord(self, evt):
+            #self.canvas.destroy()
+            self.BeginRec = True
+
+
 
 
 def start_game(output_dir):
@@ -92,9 +102,9 @@ def start_game(output_dir):
   resolution = [1600,900]
   tk = Tk()
   tk.title("Bouncing Ball Game")
-  tk.attributes("-fullscreen", False)
+  tk.attributes("-fullscreen", fullscreen)
   tk.resizable(0, 0)
-  tk.wm_attributes('-type', 'splash')
+  #tk.wm_attributes('-type', 'splash')
   tk.wm_attributes("-topmost", 0)
   canvas = Canvas(tk, width=resolution[0], height=resolution[1], bd=0, highlightthickness=0)
   canvas.mainloop
@@ -110,23 +120,31 @@ def start_game(output_dir):
   
   # Init videocapture from camera
   cam = cv2.VideoCapture(0)  
-
   framenum = 0
   try:
-    while 1:
+#    display camera stream before starting recording for face placement. Not working currently
+#    while not paddle.BeginRec:     
+#      ret, frame = cam.read()
+#      im = PI.PhotoImage(image = frame)
+#      canvas.create_bitmap(0,0,im, anchor=NW)
+#      cut_eyes(frame,show=1)
+#      tk.update_idletasks()
+#      tk.update()
+ 
+    while not paddle.endProg:
         ret, frame = cam.read()
-        if  not paddle.endProg and ret==True:
+        if ret==True:
           ball.draw()            
-
-          frame = cut_eyes(frame)
-          cv2.imwrite(str(output_dir/("frame%d.jpg" % framenum)), frame)   #write to  images 'frame№.jpg'
-          f.write("%s,%s\r\n" % (framenum, (str(ball.coord()))))  
+          eyes_found, frame = cut_eyes(frame)
+          if(eyes_found):
+            cv2.imwrite(str(output_dir/("frame%d.jpg" % framenum)), frame)   #write to  images 'frame№.jpg'
+            f.write("%s,%s\r\n" % (framenum, (str(ball.coord()))))  
+            framenum = framenum+1  # I intentionally disregard frames that failed to produce an eye region rectangle
         else:
-          break
-        framenum = framenum+1      
+          break            
         tk.update_idletasks()
         tk.update()
-        time.sleep(0.03)
+        time.sleep(0.005)
   except Exception as inst:
     f.close()
     cam.release()     
@@ -138,10 +156,12 @@ def start_game(output_dir):
 
   
 output = path/'data/eyetrack_eyes_2'
+
+clear_dir(output) # careful! 
 start_game(output)
 
 
-  
+
   #     print(type(inst))    # the exception instance
   #     print(inst.args)     # arguments stored in .args
   #     print(inst)   

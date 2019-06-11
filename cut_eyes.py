@@ -22,6 +22,7 @@ face_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_frontalface_de
 eye_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_eye.xml'))
 #eye_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_eye_tree_eyeglasses.xml')
 
+allow_clear = True
 
 def report(what):
   """
@@ -43,23 +44,32 @@ def cut_eyes(img, to_size = (160,60), dest_path = None, show = False):
     img = cv2.imread(img)
   gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
   faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-  for (x,y,w,h) in faces:        
-      roi_gray = gray[y:y+h, x:x+w]              
-      eyes = eye_cascade.detectMultiScale(roi_gray)   
+  #for (x,y,w,h) in faces:        
+  if len(faces)>0:
+    ((x,y,w,h),) = faces
+    roi_gray = gray[y:y+h, x:x+w]              
+    eyes = eye_cascade.detectMultiScale(roi_gray)   
+    if len(eyes) > 1: #sometimes it detects 1 or 0 eyes. return None 
       eyes = eyes[0:2,] #sometimes it detects 3 eyes. so take just the first 2
       ((ex1,ey1,ew1,eh1),(ex2,ey2,ew2,eh2)) = eyes #tuple umpacking ftw
       #instead of square around each eye take a rectangle around both ov them      
       (x1,y1,x2,y2) = (min(ex1,ex2), min(ey1,ey2), max(ex1+ew1,ex2+ew2), max(ey1+eh1,ey2+eh2))   
       roi_color = img[y:y+h, x:x+w]  #roi is for region of interest
       img = cv2.resize(roi_color[y1:y2, x1:x2], to_size)
-  if show:      
-    cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)        
-    cv2.rectangle(roi_color,(x1,y1),(x2,y2),(0,255,0),2)
-    cv2.imshow('img',roi_color)  
-  if(dest_path != None):      
-    cv2.imwrite(dest_path,img)
-  return img
-
+  
+      if show:      
+        #cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)        
+        cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),2)
+        cv2.imshow('img',img)  
+      if(dest_path != None):      
+        cv2.imwrite(dest_path,img)
+      return True, img
+    else:
+      return False, None
+  else:
+    if show:      
+      cv2.imshow('img',img) 
+    return False, None
 
 ##test on single file 
 
@@ -91,7 +101,16 @@ def cut_eyes_dir(src_dir_path, dest_dir_path):
 
 
   
-  
+def clear_dir(path):
+  from cut_eyes import allow_clear 
+  if allow_clear:
+    for fl in path.iterdir():
+      if fl.suffix == '.jpg':
+        report('removing file ' + fl.name)    
+        fl.unlink()
+  else:
+    print("you must set allow_clear to True first!")
+    #cut_eyes(str(fl), dest_path= str(dest_dir_path/fl.name))
   
   
   

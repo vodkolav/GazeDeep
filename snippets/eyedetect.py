@@ -8,14 +8,15 @@ Created on Sun Jun  2 18:14:36 2019
 
 #import numpy as np
 import cv2
-import time
+import pathlib
+path = pathlib.Path("/home/michael/Code/GazeDeep")
 # multiple cascades: https://github.com/Itseez/opencv/tree/master/data/haarcascades
 
 #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_frontalface_default.xml
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')                                     
+face_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_frontalface_default.xml'))                                 
 #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_eye.xml
 #eye_cascade = cv2.CascadeClassifier('/home/michael/Code/video/haarcascade_eye.xml')
-eye_cascade = cv2.CascadeClassifier('/home/michael/Code/video/haarcascade_eye_tree_eyeglasses.xml')
+eye_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_eye_tree_eyeglasses.xml'))
 
 
 cap = cv2.VideoCapture(0)
@@ -37,7 +38,7 @@ while 1:
 
     cv2.imshow('img',img)
     k = cv2.waitKey(30) & 0xff
-    if k == 27:
+    if k == 27: #Esc Key
         break
 
 cap.release()

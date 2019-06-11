@@ -6,4 +6,4 @@ Defines global configurtion for program
 """
 import pathlib
 path = pathlib.Path("/home/michael/Code/GazeDeep")
-
+fullscreen = False
