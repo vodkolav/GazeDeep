@@ -1,178 +1,130 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jun  3 11:56:15 2019
+Main data gathering script 
+Launches a game of bouncing ball.
+The user gazes carefully at the ball with only the eyes, not turning the head.
+The script takes pictures of the user's face from his laptop camera and selects only eyes region
+The pictures and ball coordinates are saved.
+
 
 @author: Michael Berger
 """
 
 
 from tkinter import Tk, Canvas
-import random as rnd
 import time
 import cv2
-from cut_eyes import cut_eyes, report, clear_dir
+from cut_eyes import cut_eyes, clear_dir
 from conf import path, fullscreen
- 
-#import PIL.ImageTk as PI
-#import conf.py as GDc
+import random as rnd
 
 
-class Ball:
-    def __init__(self, canvas, paddle, color):
-        self.canvas = canvas
-        self.paddle = paddle
-        self.id = canvas.create_oval(10, 10, 50, 50, fill=color)
-        self.canvas.move(self.id, 245, 100)
-        starts = [-3, -2, -1, 1, 2, 3]
-        rnd.shuffle(starts)
-        self.x = -3 # starts[0]
-        self.y = -3
-        self.canvas_height = self.canvas.winfo_height()
-        self.canvas_width = self.canvas.winfo_width()
-        self.hit_bottom = False    
-        self.speed = 5
-        self.speed_range = [1,7]
-        
-    def hit_paddle(self, pos):
-        paddle_pos = self.canvas.coords(self.paddle.id)
-        if pos[2] >= paddle_pos[0] and pos[0] <= paddle_pos[2]:
-            if pos[3] >= paddle_pos[1] and pos[3] <= paddle_pos[3]:
-                return True
-        return False
-      
-    def randwalk(self,direction):
-        return ((self.speed_range[1] - self.speed_range[0]) * rnd.random() + self.speed_range[0]) *direction
-      
-    def coord(self):
-        x = self.canvas.coords(self.id)
-        return ','.join(str(int(e)) for e in x[0:2])
-      
-    def draw(self):
-        self.canvas.move(self.id, self.x, self.y)
-        pos = self.canvas.coords(self.id)
-        
-        if pos[1] <= 0:
-            self.y = self.randwalk(self.speed)
-        if pos[3] >= self.canvas_height:
-            self.y = self.randwalk(-self.speed)  
-        if pos[0] <= 0:
-            self.x = self.randwalk(self.speed)
-        if pos[2] >= self.canvas_width:
-            self.x = self.randwalk(-self.speed)
-            
-class Paddle:
-    def __init__(self, canvas, color):
-        self.canvas = canvas
-        self.id = canvas.create_rectangle(0, 0, 0, 0, fill=color)
-        self.canvas.move(self.id, 0, 0)
-        self.x = 0
-        self.endProg = False
-        self.BeginRec = False
-        self.canvas_width = self.canvas.winfo_width()
-        self.canvas.bind_all('<KeyPress-Left>', self.turn_left)
-        self.canvas.bind_all('<KeyPress-Right>', self.turn_right)    
-        self.canvas.bind_all('<Escape>', self.QuitProg )
-        self.canvas.bind_all('<s>', self.BeginRecord )
-        
-    def draw(self):
-        self.canvas.move(self.id, self.x, 0)
-        pos = self.canvas.coords(self.id)
-        if pos[0] <= 0:
-            self.x = 0
-        elif pos[2] >= self.canvas_width:
-            self.x = 0    
-            
-    def turn_left(self, evt):
-            self.x = -3
-    def turn_right(self, evt):
-            self.x = 3
-    def QuitProg(self, evt):
-            #self.canvas.destroy()
-            self.endProg = True
-    def BeginRecord(self, evt):
-            #self.canvas.destroy()
-            self.BeginRec = True
-
-
-
-
-def start_game(output_dir):
-  # Init canvas for the ball
-  resolution = [1600,900]
-  tk = Tk()
-  tk.title("Bouncing Ball Game")
-  tk.attributes("-fullscreen", fullscreen)
-  tk.resizable(0, 0)
-  #tk.wm_attributes('-type', 'splash')
-  tk.wm_attributes("-topmost", 0)
-  canvas = Canvas(tk, width=resolution[0], height=resolution[1], bd=0, highlightthickness=0)
-  canvas.mainloop
-  canvas.pack()
-  tk.update()
-  paddle = Paddle(canvas, 'blue')
-  ball = Ball(canvas, paddle, 'blue')
-  paddle.draw()
-  
-  #Init csv file for coordinates 
-  f= open(output_dir/"coords.csv","w+")
-  f.write("frame,width,height\r\n")
-  
-  # Init videocapture from camera
-  cam = cv2.VideoCapture(0)  
+class Ball:  
   framenum = 0
+  def __init__(self,canvas):
+    
+    self.canvas = canvas
+    self.shape = canvas.create_oval(0, 0, BALLSIZE, BALLSIZE, fill=BALLCOLOR)
+    self.speed = 30
+    self.speedx = self.speed # changed from 3 to 9
+    self.speedy = self.speed # changed from 3 to 9
+    self.speed_range = [-15,15]
+    self.active = True
+    self.move_active()    
+    canvas.bind_all('<Escape>', self.QuitProg)
+     
+    
+  def randwalk(self,direction):
+      return ((self.speed_range[1] - self.speed_range[0]) * rnd.random() + self.speed_range[0]) +direction
+  
+  def ball_update(self):    
+    self.canvas.move(self.shape, self.speedx, self.speedy)    
+
+    pos = self.canvas.coords(self.shape)
+    if pos[1] <= 0:
+        self.speedy = self.randwalk(self.speed)
+    if pos[3] >= HEIGHT:
+        self.speedy = self.randwalk(-self.speed)
+    if pos[0] <= 0:
+        self.speedx = self.randwalk(self.speed)
+    if pos[2] >= WIDTH:
+        self.speedx = self.randwalk(-self.speed)
+    
+#    if pos[2] >= WIDTH or pos[0] <= 0:
+#        self.speedx = -np.sign(self.speedx)*self.randspeed()
+#    if pos[3] >= HEIGHT or pos[1] <= 0:
+#        self.speedy = -np.sign(self.speedy)*self.randspeed()
+   
+  
+  def move_active(self):
+    if self.active:
+        self.ball_update()
+        self.framenum = process_frame(self.framenum, self.coord())        
+        self.canvas.after(1, self.move_active) # changed from 10ms to 30ms
+    else:
+        tk.destroy()
+          
+  def QuitProg(self, evt):
+        #self.canvas.destroy()
+        self.active = False    
+      
+  def coord(self):
+    x = self.canvas.coords(self.shape)
+    return ','.join(str(int(e)) for e in x[0:2])
+
+
+def process_frame(framenum,coord):
   try:
-#    display camera stream before starting recording for face placement. Not working currently
-#    while not paddle.BeginRec:     
-#      ret, frame = cam.read()
-#      im = PI.PhotoImage(image = frame)
-#      canvas.create_bitmap(0,0,im, anchor=NW)
-#      cut_eyes(frame,show=1)
-#      tk.update_idletasks()
-#      tk.update()
- 
-    while not paddle.endProg:
-        ret, frame = cam.read()
-        if ret==True:
-          ball.draw()            
-          eyes_found, frame = cut_eyes(frame)
-          if(eyes_found):
-            cv2.imwrite(str(output_dir/("frame%d.jpg" % framenum)), frame)   #write to  images 'frame№.jpg'
-            f.write("%s,%s\r\n" % (framenum, (str(ball.coord()))))  
-            framenum = framenum+1  # I intentionally disregard frames that failed to produce an eye region rectangle
-        else:
-          break            
-        tk.update_idletasks()
-        tk.update()
-        time.sleep(0.005)
+    ret, frame = cam.read()     
+    eyes_found, frame = cut_eyes(frame)
+    if(eyes_found):
+      TOC = time.time() - TIC 
+      cv2.imwrite(str(output_dir/("frame%d.jpg" % framenum)), frame)   #write to  images 'frame№.jpg'
+      coordfile.write("%s,%s,%s\r\n" % (framenum, (str(coord)), TOC))  
+      framenum = framenum + 1  # I intentionally disregard frames that failed to produce an eye region rectangle
+    return framenum       
   except Exception as inst:
-    f.close()
+    coordfile.close()
     cam.release()     
     tk.destroy()
     raise inst  
-  f.close()    
-  cam.release() 
-  tk.destroy()
-
   
-output = path/'data/eyetrack_eyes_2'
+#Init output directory and clear it
+output_dir = path/'data/eyetrack_eyes_2'
+clear_dir(output_dir) # careful! 
 
-clear_dir(output) # careful! 
-start_game(output)
+#Init parameters of game
+#resolution                 
+WIDTH = 1600
+HEIGHT = 900
+BALLSIZE = 40
+BALLCOLOR = 'blue'
+
+# Init canvas for the ball
+tk = Tk()
+tk.attributes("-fullscreen", fullscreen)
+#tk.wm_attributes('-type', 'splash')
+#tk.wm_attributes("-topmost", 0)
+canvas = Canvas(tk, width=WIDTH, height=HEIGHT, bg="lightgrey")
+canvas.pack()
+
+#Init csv file for ball coordinates 
+coordfile = open(output_dir/"coords.csv","w+")
+coordfile.write("frame,width,height\r\n")
+
+# Init videocapture from camera
+cam = cv2.VideoCapture(0)  
+
+#Finally, create ball and start main loop
+ball = Ball(canvas)
+TIC = time.time()
+tk.mainloop()
+
+coordfile.close()    
+cam.release() 
 
 
 
-  #     print(type(inst))    # the exception instance
-  #     print(inst.args)     # arguments stored in .args
-  #     print(inst)   
-   #out.release()    
-
-
-  # Define the codec and create VideoWriter object
-  #fourcc = cv2.VideoWriter_fourcc(*'XVID')
-  #out = cv2.VideoWriter('output.avi',fourcc, 20.0, (640,480))
-  
-
-          #out.write(frame) # write to video file 
 
 
