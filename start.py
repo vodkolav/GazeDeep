@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main data gathering script 
-Launches a game of bouncing ball.
-The user gazes carefully at the ball with only the eyes, not turning the head.
-The script takes pictures of the user's face from his laptop camera and selects only eyes region
-The pictures and ball coordinates are saved.
+Mostly obsolete file. All it's functionality is incorporated in bounce_and_record file
 
 
 @author: Michael Berger
@@ -15,9 +11,8 @@ The pictures and ball coordinates are saved.
 from tkinter import Tk, Canvas
 import time
 import cv2
-from cut_eyes import cut_eyes
+from cut_eyes import cut_eyes, init_dir
 from conf import path, fullscreen
-from aux import init_dir, output_dir
 import random as rnd
 from predict import predict
 
@@ -40,31 +35,24 @@ class Ball:
       return ((self.speed_range[1] - self.speed_range[0]) * rnd.random() + self.speed_range[0]) +direction
   
   def ball_update(self, position):    
-    
-    if PLAYMODE:
-      self.canvas.coords(self.shape, position[0], position[1], position[0] + BALLSIZE,position[1] + BALLSIZE)    
-    else:
-      self.canvas.move(self.shape, self.speedx, self.speedy)    
-      pos = self.canvas.coords(self.shape)
-      if pos[1] <= 0:
-          self.speedy = self.randwalk(self.speed)
-      if pos[3] >= HEIGHT:
-          self.speedy = self.randwalk(-self.speed)
-      if pos[0] <= 0:
-          self.speedx = self.randwalk(self.speed)
-      if pos[2] >= WIDTH:
-          self.speedx = self.randwalk(-self.speed)
+    self.canvas.coords(self.shape, position[0], position[1], position[0] + BALLSIZE,position[1] + BALLSIZE)    
+
+#    pos = self.canvas.coords(self.shape)
+#    if pos[1] <= 0:
+#        self.speedy = self.randwalk(self.speed)
+#    if pos[3] >= HEIGHT:
+#        self.speedy = self.randwalk(-self.speed)
+#    if pos[0] <= 0:
+#        self.speedx = self.randwalk(self.speed)
+#    if pos[2] >= WIDTH:
+#        self.speedx = self.randwalk(-self.speed)
     
  
   def move_active(self):
     if self.active:
-      if PLAYMODE:
-        position = play_frame()
-        self.ball_update(position)   
-      else:
-        self.ball_update()
-        self.framenum = record_frame(self.framenum, self.coord())        
-      self.canvas.after(1, self.move_active) # changed from 10ms to 30ms
+        coords = play_frame()
+        self.ball_update(coords)       
+        self.canvas.after(1, self.move_active) # changed from 10ms to 30ms
     else:
         tk.destroy()
           
@@ -77,26 +65,6 @@ class Ball:
     return ','.join(str(int(e)) for e in x[0:2])
 
 
-def record_frame(framenum,coord):
-  try:
-    ret, frame = cam.read()     
-    eyes_found, frame = cut_eyes(frame)
-    TOC = time.time() - TIC 
-    #print(TOC)
-    if TOC > MAXTIME: ball.QuitProg(None)
-    if(eyes_found):
-
-      cv2.imwrite(str(output_dir/("frame%d.jpg" % framenum)), frame)   #write to  images 'frame№.jpg'
-      coordfile.write("%s,%s,%s\r\n" % (framenum, (str(coord)), TOC))  
-      framenum = framenum + 1  # I intentionally disregard frames that failed to produce an eye region rectangle
-    return framenum       
-  except Exception as inst:
-    coordfile.close()
-    cam.release()     
-    tk.destroy()
-    raise inst  
-    
-    
 def play_frame():
   try:
     ret, frame = cam.read()     
@@ -116,7 +84,7 @@ def play_frame():
     raise inst
 
 #Init output directory and clear it
-
+output_dir = path/'data/eyetrack_eyes_4'
 init_dir(output_dir) # careful! 
 
 #Init parameters of game
@@ -125,8 +93,7 @@ WIDTH = 1600
 HEIGHT = 900
 BALLSIZE = 40
 BALLCOLOR = 'blue'
-MAXTIME = 300 #secs, How much time to run the recorder
-PLAYMODE = True # Whether to run script in record or play mode
+MAXTIME = 300 #secs, How much time to run the process
 # Init canvas for the ball
 tk = Tk()
 tk.attributes("-fullscreen", fullscreen)

@@ -14,7 +14,7 @@ Cuts rectangular eyes region from image of face
 """
 
 import cv2
-from sys import stdout
+from aux import report
 from conf import path
 
 face_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_frontalface_default.xml'))                             
@@ -22,14 +22,6 @@ face_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_frontalface_de
 eye_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_eye.xml'))
 #eye_cascade = cv2.CascadeClassifier(str(path/'models/haarcascade_eye_tree_eyeglasses.xml')
 
-allow_clear = True
-
-def report(what):
-  """
-  like print() but reports on the same line so that output doesn't end up cluttered
-  """
-  stdout.write("\r%s" % what)
-  stdout.flush()
 
 
 def cut_eyes(img, to_size = (160,60), dest_path = None, show = False):
@@ -46,6 +38,10 @@ def cut_eyes(img, to_size = (160,60), dest_path = None, show = False):
   faces = face_cascade.detectMultiScale(gray, 1.3, 5)
   #for (x,y,w,h) in faces:        
   if len(faces)>0:
+    #faces = faces[1,]
+    if faces.shape !=(1,4):
+      faces = faces[1,]
+      #print(faces)
     ((x,y,w,h),) = faces
     roi_gray = gray[y:y+h, x:x+w]              
     eyes = eye_cascade.detectMultiScale(roi_gray)   
@@ -100,26 +96,7 @@ def cut_eyes_dir(src_dir_path, dest_dir_path):
 #cut_eyes_dir(path/'eyetrack' ,path/'eyetrack_eyes')
 
 
-  
-def clear_dir(path):
-  from cut_eyes import allow_clear 
-  if allow_clear:
-    for fl in path.iterdir():
-      if fl.suffix == '.jpg':
-        report('removing file ' + fl.name)    
-        fl.unlink()
-  else:
-    print("you must set allow_clear to True first!")
-    #cut_eyes(str(fl), dest_path= str(dest_dir_path/fl.name))
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
   
   
   

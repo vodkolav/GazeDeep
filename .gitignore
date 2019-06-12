@@ -105,3 +105,5 @@ venv.bak/
 
 
 data
+profiling
+models/eyetrack_eyes_3.pkl

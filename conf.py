@@ -6,4 +6,6 @@ Defines global configurtion for program
 """
 import pathlib
 path = pathlib.Path("/home/michael/Code/GazeDeep")
+output_dir = path/'data/eyetrack_eyes_3'
 fullscreen = False
+force_clear = False
